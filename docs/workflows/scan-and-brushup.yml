@@ -1,0 +1,67 @@
+name: Scan and brush up stock investment repositories
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: 'GitHub user or organization to scan'
+        required: true
+        type: string
+      min_score:
+        description: 'Minimum relevance score for stock-investment repositories'
+        required: true
+        default: '4'
+        type: string
+      apply:
+        description: 'Create safe recommendation PRs in detected repositories'
+        required: true
+        default: false
+        type: boolean
+      limit:
+        description: 'Maximum repositories to scan'
+        required: true
+        default: '100'
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_GITHUB_TOKEN: ${{ secrets.TARGET_GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Scan repositories
+        run: |
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            stock-brushup github-scan \
+              --owner "${{ inputs.owner }}" \
+              --limit "${{ inputs.limit }}" \
+              --min-score "${{ inputs.min_score }}" \
+              --output reports \
+              --apply
+          else
+            stock-brushup github-scan \
+              --owner "${{ inputs.owner }}" \
+              --limit "${{ inputs.limit }}" \
+              --min-score "${{ inputs.min_score }}" \
+              --output reports
+          fi
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-brushup-report
+          path: reports/
