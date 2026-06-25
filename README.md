@@ -9,9 +9,18 @@
 - `yfinance`、`ta`、`backtesting.py`、`quantstats`、`PyPortfolioOpt`、`skfolio`、`OpenBB` などの候補を用途別に推薦
 - Markdown / JSON の改善レポートを生成
 - `apply=true` の時だけ、対象repoに `docs/stock-investment-brushup.md` と候補依存関係メモを追加するPRを作成
-- GitHub Actions artifactとして診断結果を保存
+- GitHub Actions artifactとして診断結果を保存するworkflowテンプレートを同梱
 
 > 注意: 投資助言ではありません。ここで生成される内容は、開発・分析基盤の改善案であり、売買判断を推奨するものではありません。
+
+## 現在のActions状態
+
+初回作成時、通常ファイルはcommit済みですが、`.github/workflows/*` の作成だけGitHub APIが `404 Not Found` を返しました。そのため、workflowは以下にテンプレートとして保存しています。
+
+- `docs/workflows/ci.yml`
+- `docs/workflows/scan-and-brushup.yml`
+
+GitHub連携Tokenにworkflow更新権限が付与されれば、この2ファイルを `.github/workflows/` に配置するだけでCIと手動スキャンActionsが動きます。詳細は `docs/workflow-permission-recovery.md` を参照してください。
 
 ## アーキテクチャと処理の流れ
 
@@ -49,19 +58,7 @@ flowchart LR
 
 ## 最短の使い方
 
-GitHub Actionsから実行するのが一番簡単です。
-
-1. このrepoの **Actions** タブを開く
-2. **Scan and brush up stock investment repositories** を選ぶ
-3. **Run workflow** を押す
-4. `owner` に対象GitHubユーザー名またはOrganization名を入力
-5. まずは `apply` を `false` のまま実行
-6. artifact `stock-brushup-report` からレポートを確認
-7. PRを自動作成したい場合だけ `apply=true` で再実行
-
-他repoへPRを作成するには、対象repoへの書き込み権限を持つTokenをこのrepoのSecretsに `TARGET_GITHUB_TOKEN` として登録してください。読み取りだけならpublic repoはTokenなしでも動作しますが、API制限を避けるためToken設定を推奨します。
-
-## ローカル実行
+ローカルまたはCodespacesではすぐに実行できます。
 
 ```bash
 python -m venv .venv
@@ -78,6 +75,8 @@ export TARGET_GITHUB_TOKEN=github_pat_xxx
 stock-brushup github-scan --owner YOUR_GITHUB_OWNER --output reports --min-score 4 --apply
 ```
 
+GitHub Actionsとして動かす場合は、`docs/workflows/` のテンプレートを `.github/workflows/` に配置してください。
+
 ## 出力
 
 - `reports/stock-investment-repo-report.md`
@@ -90,6 +89,7 @@ stock-brushup github-scan --owner YOUR_GITHUB_OWNER --output reports --min-score
 - 他repoへPRを作る場合のみ、`TARGET_GITHUB_TOKEN`
   - Fine-grained tokenなら対象repoへの `Contents: Read and write`、`Pull requests: Read and write`
   - Public repoの棚卸しのみなら書き込み権限は不要
+- workflowファイルをAPIで作成・更新する場合は、GitHub連携Token側のworkflow更新権限
 - 金融データAPIキーは不要。このツール自体はrepo診断だけを行います
 
 ## 主要ファイル
@@ -98,10 +98,11 @@ stock-brushup github-scan --owner YOUR_GITHUB_OWNER --output reports --min-score
 - `stock_repo_brushup/detector.py`: 株式投資系repoの検出
 - `stock_repo_brushup/recommendations.py`: OSSライブラリ推薦
 - `stock_repo_brushup/github_client.py`: GitHub API連携とPR作成
-- `.github/workflows/ci.yml`: テスト・lint
-- `.github/workflows/scan-and-brushup.yml`: 手動実行用の棚卸し/PR作成workflow
+- `docs/workflows/ci.yml`: CI workflowテンプレート
+- `docs/workflows/scan-and-brushup.yml`: 棚卸し/PR作成workflowテンプレート
 - `docs/architecture.md`: 詳細アーキテクチャ
 - `docs/setup.md`: 初期設定ガイド
+- `docs/workflow-permission-recovery.md`: workflow反映エラー復旧ガイド
 
 ## 開発
 
